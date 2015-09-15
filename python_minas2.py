@@ -61,6 +61,8 @@ lista_casillas = []
 
 actualizacion_completa = True
 
+fora_pantalla = False
+
 #INICIAR PYGAME
 
 pygame.init()
@@ -257,7 +259,7 @@ while ON:
 	
 	#POS CASILLA MOUSE
 	
-	if pos_mouse[0] > MARCO and pos_mouse[1] > MARCO and pos_mouse[0] < ANCHO_VENTANA-MARCO and pos_mouse[1] < ALTO_VENTANA-MARCO:
+	if pos_mouse[0] > MARCO and pos_mouse[1] > MARCO and pos_mouse[0] < ANCHO_VENTANA-MARCO and pos_mouse[1] < ALTO_VENTANA-MARCO and not fora_pantalla:
 		pos_casilla_mouse = [(pos_mouse[0]-MARCO)/LADO_CADRO,(pos_mouse[1]-MARCO)/LADO_CADRO]
 	else:
 		pos_casilla_mouse = False
@@ -283,7 +285,9 @@ while ON:
 	
 		if evento.type == 1:
 			if evento.state == 1 and evento.gain == 0:
-				pos_casilla_mouse = False
+				fora_pantalla = True
+			else:
+				fora_pantalla = False
 		
 		#if evento.type == pygame.KEYDOWN:
 			#if evento.key == pygame.K_SPACE:

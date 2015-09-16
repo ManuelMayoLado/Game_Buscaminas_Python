@@ -15,9 +15,9 @@ if os.name == 'nt' and sys.getwindowsversion()[0] >= 6:
 
 class casilla:
 	def __init__(self,pos,seleccionada,pulsada,marcada,aberta,mina,numero):
-		self.pos = pos
 		self.seleccionada = seleccionada
 		self.pulsada = pulsada
+		self.pos = pos
 		self.marcada = marcada
 		self.aberta = aberta
 		self.mina = mina
@@ -47,7 +47,9 @@ COLOR_SELECCIONADA = [210,210,210]
 COLOR_PULSADA = [190,190,190]
 COLOR_MARCA = [255,50,50]
 
-COLOR_TEXTO = [250,250,250]
+COLOR_TEXTO = [200,255,255]
+
+MAX_ACTUALIZAR = 1
 
 ##VARIABLES
 
@@ -55,11 +57,11 @@ actualizar = 1
 
 pos_casilla_mouse = False
 
-lista_cadros = []
+lista_casillas = []
 
-for i in range(NUM_CASILLAS):
-								#pos										seleccionada pulsada aberta mina numero
-	lista_cadros.append(casilla([i-i/NUM_CADRADOS_FILA*NUM_CADRADOS_FILA,i/NUM_CADRADOS_FILA],0,0,0,0,0,2))
+actualizacion_completa = True
+
+fora_pantalla = False
 
 #INICIAR PYGAME
 
@@ -67,13 +69,64 @@ pygame.init()
 
 ventana = pygame.display.set_mode([ANCHO_VENTANA, ALTO_VENTANA])
 
-Surface_casillas = pygame.Surface((ANCHO_VENTANA,ALTO_VENTANA))
+Surface_casillas = pygame.Surface((ANCHO_VENTANA-MARCO*2,ALTO_VENTANA-MARCO*2)).convert()
 
 pygame.display.set_caption("Python Buscaminas")
 
 font = pygame.font.SysFont("System", int(LADO_CADRO*1.2))
 
 ON = True
+
+#FUNCIONS
+
+def num(pos):
+	return pos[0]+pos[1]*NUM_CADRADOS_FILA
+	
+def pos(num):
+	return [num % NUM_CADRADOS_FILA, num / NUM_CADRADOS_FILA]
+
+def debuxar_casilla(n):
+
+	posicion = pos(n)
+		
+	rect_cadro = pygame.Rect(posicion[0]*LADO_CADRO,posicion[1]*LADO_CADRO,LADO_CADRO,LADO_CADRO)
+		
+	if lista_casillas[n].aberta:
+		color_cadro = COLOR_FONDO
+	else:
+		color_cadro = COLOR_CADRO
+		
+	pygame.draw.rect(Surface_casillas,color_cadro,rect_cadro)
+	
+	casilla = lista_casillas[n]
+		
+	if casilla.numero and casilla.aberta:
+		text_numero = font.render(str(casilla.numero),True,COLOR_TEXTO)
+		Surface_casillas.blit(text_numero,[
+							casilla.pos[0]*LADO_CADRO+text_numero.get_width()/1.6,
+							casilla.pos[1]*LADO_CADRO+text_numero.get_height()/5.1
+							])
+		
+	if not casilla.aberta and casilla.marcada:
+		text_numero = font.render("?",True,COLOR_MARCA)
+		Surface_casillas.blit(text_numero,[
+							casilla.pos[0]*LADO_CADRO+text_numero.get_width()/2.,
+							casilla.pos[1]*LADO_CADRO+text_numero.get_height()/5.1
+							])
+
+Surface_casillas.fill(COLOR_CADRO)		
+
+for i in range(NUM_CADRADOS_FILA+1):
+	pygame.draw.line(Surface_casillas, COLOR_FONDO, [i*LADO_CADRO, 0], [i*LADO_CADRO,ALTO_VENTANA], GROSOR_LINHA)
+		
+for i in range(NUM_FILAS+1):
+	pygame.draw.line(Surface_casillas, COLOR_FONDO, [0, i*LADO_CADRO], [ANCHO_VENTANA,i*LADO_CADRO], GROSOR_LINHA)
+
+#GENERAR LISTA_CASILLAS
+
+for i in range(NUM_CASILLAS):
+								#pos										marcada aberta mina numero
+	lista_casillas.append(casilla(pos(i),0,0,0,0,0,2))	
 
 ###################################################################
 ####BUCLE XOGO
@@ -87,77 +140,116 @@ while ON:
 	#--------------------------------------------------
 	
 	if actualizar:
-		ventana.fill(COLOR_FONDO)
+		ventana.fill(COLOR_FONDO)			
 	
-		#DEBUXAR CASILLAS
-		
+		#PEGAR SURFACE_CASILAS
+	
 	if actualizar:
+		ventana.blit(Surface_casillas,(MARCO,MARCO))
+	
+		#DEBUXAR CADRO_MOUSE
 		
-		for i in lista_cadros:
+	if pos_casilla_mouse:
 		
-			rect_cadro = pygame.Rect(i.pos[0]*LADO_CADRO+MARCO,i.pos[1]*LADO_CADRO+MARCO,LADO_CADRO,LADO_CADRO)
+		if not lista_casillas[num_casilla].aberta:
 		
-			if i.aberta:
-				color_cadro = COLOR_FONDO
-			elif i.pulsada:
-				if i.marcada:
+			if lista_casillas[num_casilla].pulsada:
+				if lista_casillas[num_casilla].marcada:
 					color_cadro = COLOR_SELECCIONADA
 				else:
 					color_cadro = COLOR_PULSADA
-			elif i.seleccionada:
+			elif lista_casillas[num_casilla].seleccionada:
 				color_cadro = COLOR_SELECCIONADA
-			else:
-				color_cadro = COLOR_CADRO
+				
+			rect_cadro = pygame.Rect(lista_casillas[num_casilla].pos[0]*LADO_CADRO+MARCO,
+												lista_casillas[num_casilla].pos[1]*LADO_CADRO+MARCO,
+												LADO_CADRO,LADO_CADRO)	
 			pygame.draw.rect(ventana,color_cadro,rect_cadro)
-		
-			if i.numero and i.aberta:
-				text_numero = font.render(str(i.numero),True,COLOR_TEXTO)
-				ventana.blit(text_numero,[
-									i.pos[0]*LADO_CADRO+MARCO+text_numero.get_width()/1.6,
-									i.pos[1]*LADO_CADRO+MARCO+text_numero.get_height()/5.1
-									])
-		
-			if not i.aberta and i.marcada:
+			
+			if lista_casillas[num_casilla].marcada:
 				text_numero = font.render("?",True,COLOR_MARCA)
 				ventana.blit(text_numero,[
-									i.pos[0]*LADO_CADRO+MARCO+text_numero.get_width()/2.,
-									i.pos[1]*LADO_CADRO+MARCO+text_numero.get_height()/5.1
-									])
-			
-			if i.seleccionada:
-				i.seleccionada = 0
-			if i.pulsada:
-				i.pulsada = 0				
-	
-		#PEGAR SURFACE_CASILAS
+							lista_casillas[num_casilla].pos[0]*LADO_CADRO+MARCO+text_numero.get_width()/2.,
+							lista_casillas[num_casilla].pos[1]*LADO_CADRO+MARCO+text_numero.get_height()/5.1
+							])
 		
-	#ventana.blit(Surface_casillas,(0,0))
-	
-		#DEBUXAR CADRO_MOUSE
-	'''
-	if pos_casilla_mouse:
-		
-		num_casilla = pos_casilla_mouse[0]+pos_casilla_mouse[1]*NUM_CADRADOS_FILA
-		
-		if lista_cadros[num_casilla].pulsada:
-			if lista_cadros[num_casilla].marcada:
-				color_cadro = COLOR_SELECCIONADA
-			else:
-				color_cadro = COLOR_PULSADA
-		elif lista_cadros[num_casilla].seleccionada:
-			color_cadro = COLOR_SELECCIONADA
-				
-		rect_cadro = pygame.Rect(lista_cadros[num_casilla].pos[0]*LADO_CADRO+MARCO,lista_cadros[num_casilla].pos[1]*LADO_CADRO+MARCO,LADO_CADRO,LADO_CADRO)	
-		pygame.draw.rect(ventana,color_cadro,rect_cadro)
-	'''
 		#DEBUXAR CADRICULA
+
+	if actualizar:
 	
-	for i in range(NUM_CADRADOS_FILA+1):
-		pygame.draw.line(ventana, COLOR_FONDO, [MARCO+i*LADO_CADRO, MARCO], [MARCO+i*LADO_CADRO,ALTO_VENTANA-MARCO], GROSOR_LINHA)
+		if actualizacion_completa:
 		
-	for i in range(NUM_FILAS+1):
-		pygame.draw.line(ventana, COLOR_FONDO, [MARCO, MARCO+i*LADO_CADRO], [ANCHO_VENTANA-MARCO,MARCO+i*LADO_CADRO], GROSOR_LINHA)
+			for i in range(NUM_CADRADOS_FILA+1):
+				pygame.draw.line(ventana, COLOR_FONDO, [MARCO+i*LADO_CADRO, MARCO], [MARCO+i*LADO_CADRO,ALTO_VENTANA-MARCO], GROSOR_LINHA)
+		
+			for i in range(NUM_FILAS+1):
+				pygame.draw.line(ventana, COLOR_FONDO, [MARCO, MARCO+i*LADO_CADRO], [ANCHO_VENTANA-MARCO,MARCO+i*LADO_CADRO], GROSOR_LINHA)
+		
+		else:
 	
+			if pos_casilla_mouse:
+		
+				pygame.draw.line(ventana, COLOR_FONDO, 
+					[MARCO+pos_casilla_mouse[0]*LADO_CADRO, MARCO], 
+					[MARCO+pos_casilla_mouse[0]*LADO_CADRO,ALTO_VENTANA-MARCO],
+					GROSOR_LINHA)
+				pygame.draw.line(ventana, COLOR_FONDO, 
+					[MARCO+pos_casilla_mouse[0]*LADO_CADRO+LADO_CADRO, MARCO], 
+					[MARCO+pos_casilla_mouse[0]*LADO_CADRO+LADO_CADRO,ALTO_VENTANA-MARCO], 
+					GROSOR_LINHA)
+				pygame.draw.line(ventana, COLOR_FONDO, 
+					[MARCO, MARCO+pos_casilla_mouse[1]*LADO_CADRO], 
+					[ANCHO_VENTANA-MARCO, MARCO+pos_casilla_mouse[1]*LADO_CADRO], 
+					GROSOR_LINHA)
+				pygame.draw.line(ventana, COLOR_FONDO, 
+					[MARCO, MARCO+pos_casilla_mouse[1]*LADO_CADRO+LADO_CADRO], 
+					[ANCHO_VENTANA-MARCO, MARCO+pos_casilla_mouse[1]*LADO_CADRO+LADO_CADRO], 
+					GROSOR_LINHA)
+			
+			if pos_casilla_mouse_anterior:
+				
+				pygame.draw.line(ventana, COLOR_FONDO, 
+					[MARCO+pos_casilla_mouse_anterior[0]*LADO_CADRO, MARCO], 
+					[MARCO+pos_casilla_mouse_anterior[0]*LADO_CADRO,ALTO_VENTANA-MARCO],
+					GROSOR_LINHA)
+				pygame.draw.line(ventana, COLOR_FONDO, 
+					[MARCO+pos_casilla_mouse_anterior[0]*LADO_CADRO+LADO_CADRO, MARCO], 
+					[MARCO+pos_casilla_mouse_anterior[0]*LADO_CADRO+LADO_CADRO,ALTO_VENTANA-MARCO], 
+					GROSOR_LINHA)
+				pygame.draw.line(ventana, COLOR_FONDO, 
+					[MARCO, MARCO+pos_casilla_mouse_anterior[1]*LADO_CADRO], 
+					[ANCHO_VENTANA-MARCO, MARCO+pos_casilla_mouse_anterior[1]*LADO_CADRO], 
+					GROSOR_LINHA)
+				pygame.draw.line(ventana, COLOR_FONDO, 
+					[MARCO, MARCO+pos_casilla_mouse_anterior[1]*LADO_CADRO+LADO_CADRO], 
+					[ANCHO_VENTANA-MARCO, MARCO+pos_casilla_mouse_anterior[1]*LADO_CADRO+LADO_CADRO], 
+					GROSOR_LINHA)
+			
+
+	#ACTUALIZAR VENTANA
+	#--------------------------------------------------
+	
+	if actualizar:
+		
+		if actualizacion_completa:
+			rectangulos_sucios = [pygame.Rect(0,0,ANCHO_VENTANA,ALTO_VENTANA)]
+		else:
+			rectangulos_sucios = []
+			if pos_casilla_mouse:
+				rectangulos_sucios.append(pygame.Rect(
+						pos_casilla_mouse[0]*LADO_CADRO+MARCO,pos_casilla_mouse[1]*LADO_CADRO+MARCO,LADO_CADRO,LADO_CADRO))
+			if pos_casilla_mouse_anterior:
+				rectangulos_sucios.append(pygame.Rect(
+						pos_casilla_mouse_anterior[0]*LADO_CADRO+MARCO,pos_casilla_mouse_anterior[1]*LADO_CADRO+MARCO,LADO_CADRO,LADO_CADRO))
+				
+			
+		pygame.display.update(rectangulos_sucios)
+		
+	actualizar = max(actualizar-1,0)
+	
+	if actualizacion_completa:
+		actualizacion_completa = False
+		
 	##MOUSE
 	#--------------------------------------------------
 	
@@ -165,47 +257,59 @@ while ON:
 	
 	pos_casilla_mouse_anterior = pos_casilla_mouse
 	
-	if pos_mouse[0] > MARCO and pos_mouse[1] > MARCO and pos_mouse[0] < ANCHO_VENTANA-MARCO and pos_mouse[1] < ALTO_VENTANA-MARCO:
+	#POS CASILLA MOUSE
+	
+	if pos_mouse[0] > MARCO and pos_mouse[1] > MARCO and pos_mouse[0] < ANCHO_VENTANA-MARCO and pos_mouse[1] < ALTO_VENTANA-MARCO and not fora_pantalla:
 		pos_casilla_mouse = [(pos_mouse[0]-MARCO)/LADO_CADRO,(pos_mouse[1]-MARCO)/LADO_CADRO]
 	else:
 		pos_casilla_mouse = False
 		
+	if pos_casilla_mouse:
+		num_casilla = num(pos_casilla_mouse)
+		
 	if pos_casilla_mouse and pygame.mouse.get_pressed()[0]:
-		lista_cadros[pos_casilla_mouse[0]+pos_casilla_mouse[1]*NUM_CADRADOS_FILA].pulsada = 1
+		lista_casillas[num_casilla].pulsada = 1
+		if not (lista_casillas[num_casilla].aberta or lista_casillas[num_casilla].marcada):
+			actualizar = MAX_ACTUALIZAR
 	elif pos_casilla_mouse:
-		lista_cadros[pos_casilla_mouse[0]+pos_casilla_mouse[1]*NUM_CADRADOS_FILA].seleccionada = 1
+		lista_casillas[num_casilla].seleccionada = 1
 		
 	if not pos_casilla_mouse == pos_casilla_mouse_anterior:
-		actualizar = 3
+		actualizar = MAX_ACTUALIZAR
+		
 		
 	##EVENTOS
 	#--------------------------------------------------
 	
 	for evento in pygame.event.get():
 	
+		if evento.type == 1:
+			if evento.state == 1 and evento.gain == 0:
+				fora_pantalla = True
+			else:
+				fora_pantalla = False
+		
 		#if evento.type == pygame.KEYDOWN:
 			#if evento.key == pygame.K_SPACE:
 			
-		if evento.type == pygame.MOUSEBUTTONDOWN:
-			if evento.button == 1:
-				actualizar = 3
-			
 		if evento.type == pygame.MOUSEBUTTONUP:
 			if pos_mouse[0] > MARCO and pos_mouse[1] > MARCO and pos_mouse[0] < ANCHO_VENTANA-MARCO and pos_mouse[1] < ALTO_VENTANA-MARCO:
-				num_casilla = pos_casilla_mouse[0]+pos_casilla_mouse[1]*NUM_CADRADOS_FILA
 				
 				if evento.button == 1:
-					if not lista_cadros[num_casilla].marcada:
-						lista_cadros[num_casilla].aberta = 1
-						actualizar = 3
+					if not lista_casillas[num_casilla].marcada:
+						lista_casillas[num_casilla].aberta = 1
+						actualizar = MAX_ACTUALIZAR
+						debuxar_casilla(num_casilla)
 						
 				if evento.button == 3:
-					if not lista_cadros[num_casilla].marcada:
-						lista_cadros[num_casilla].marcada = 1
-						actualizar = 3
+					if not lista_casillas[num_casilla].marcada:
+						lista_casillas[num_casilla].marcada = 1
+						actualizar = MAX_ACTUALIZAR
+						debuxar_casilla(num_casilla)
 					else:
-						lista_cadros[num_casilla].marcada = 0
-						actualizar = 3
+						lista_casillas[num_casilla].marcada = 0
+						actualizar = MAX_ACTUALIZAR
+						debuxar_casilla(num_casilla)
 		
 		if evento.type == pygame.QUIT:
 			pygame.display.quit()
@@ -214,13 +318,5 @@ while ON:
 			
 	if not ON:
 		break
-		
-	#ACTUALIZAR VENTANA
-	#--------------------------------------------------
-	
-	if actualizar:
-		pygame.display.update()
-		
-	actualizar = max(actualizar-1,0)
 	
 	reloj.tick(FPS)

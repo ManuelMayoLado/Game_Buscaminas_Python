@@ -113,6 +113,7 @@ def debuxar_casilla(n):
 		
 	if casilla.aberta and casilla.numero_minas and not casilla.mina:
 		color = [COLOR_TEXTO[0]+20*casilla.numero_minas,COLOR_TEXTO[1]-20*casilla.numero_minas,COLOR_TEXTO[2]-20*casilla.numero_minas]
+		color = [min(color[0],255),max(color[1],0),max(color[2],0)]
 		text_numero = font.render(str(casilla.numero_minas),True,color)
 		Surface_casillas.blit(text_numero,[
 							casilla.pos[0]*LADO_CADRO+text_numero.get_width()/1.6,

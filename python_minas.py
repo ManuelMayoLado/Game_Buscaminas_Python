@@ -37,7 +37,7 @@ LADO_CADRO = 25
 NUM_CADRADOS_FILA = 20
 NUM_FILAS = 20
 
-NUM_MINAS = 50
+NUM_MINAS = 30
 
 ANCHO_VENTANA = NUM_CADRADOS_FILA * LADO_CADRO + MARCO * 2
 ALTO_VENTANA = NUM_FILAS * LADO_CADRO + MARCO * 2
@@ -126,15 +126,13 @@ def debuxar_casilla(n):
 							casilla.pos[0]*LADO_CADRO+text_numero.get_width()/2.,
 							casilla.pos[1]*LADO_CADRO+text_numero.get_height()/5.1
 							])
-
-def num_minas_colindates(num):
+							
+def casillas_colindantes(num,solo_cerradas=False):
 
 	lista_pos_mirar = [num-(NUM_CADRADOS_FILA+1),num-NUM_CADRADOS_FILA,num-(NUM_CADRADOS_FILA-1),num-1,num+1,
 						num+(NUM_CADRADOS_FILA-1),num+NUM_CADRADOS_FILA,num+(NUM_CADRADOS_FILA+1)]
 						
 	lista_num_eliminar =[]
-	
-	numero_minas_colindantes = 0
 	
 	if pos(num)[0] == 0:
 		lista_num_eliminar.append(num-(NUM_CADRADOS_FILA+1))
@@ -157,12 +155,27 @@ def num_minas_colindates(num):
 	for i in lista_num_eliminar:
 		lista_pos_mirar.remove(i)
 		
-	for i in lista_pos_mirar:
+	if solo_cerradas:
+		lista_pos_mirar_cop = lista_pos_mirar[:]
+		for i in lista_pos_mirar_cop:
+			if lista_casillas[i].aberta:
+				lista_pos_mirar.remove(i)
+	
+	return lista_pos_mirar
+
+def num_minas_colindates(n):
+	
+	numero_minas_colindantes = 0
+	
+	casillas_col = casillas_colindantes(n)
+		
+	for i in casillas_col:
 		if lista_casillas[i].mina:
 			numero_minas_colindantes += 1
 			
 	return numero_minas_colindantes
-		
+	
+#
 	
 Surface_casillas.fill(COLOR_CADRO)		
 
@@ -326,6 +339,9 @@ while ON:
 		
 	if pos_casilla_mouse:
 		num_casilla = num(pos_casilla_mouse)
+	
+	if pos_casilla_mouse_anterior:
+		lista_casillas[num(pos_casilla_mouse_anterior)].pulsada = 0
 		
 	if pos_casilla_mouse and pygame.mouse.get_pressed()[0]:
 		lista_casillas[num_casilla].pulsada = 1
@@ -362,10 +378,25 @@ while ON:
 			if pos_mouse[0] > MARCO and pos_mouse[1] > MARCO and pos_mouse[0] < ANCHO_VENTANA-MARCO and pos_mouse[1] < ALTO_VENTANA-MARCO:
 				
 				if evento.button == 1:
-					if not lista_casillas[num_casilla].marcada:
-						lista_casillas[num_casilla].aberta = 1
+					if not lista_casillas[num_casilla].marcada and not lista_casillas[num_casilla].aberta:
+						if lista_casillas[num_casilla].numero_minas:
+							lista_casillas[num_casilla].aberta = 1
+							debuxar_casilla(num_casilla)
+						elif lista_casillas[num_casilla].mina:
+							lista_casillas[num_casilla].aberta = 1
+							debuxar_casilla(num_casilla)
+							GAME_OVER = True
+						else: ####################################
+							casillas_a_abrir = casillas_colindantes(num_casilla,solo_cerradas=True) + [num_casilla]
+							while casillas_a_abrir:
+								casillas_a_abrir = list(set(casillas_a_abrir))
+								if casillas_a_abrir and not lista_casillas[casillas_a_abrir[0]].numero_minas:
+									casillas_a_abrir = casillas_a_abrir + casillas_colindantes(casillas_a_abrir[0],solo_cerradas=True)
+								lista_casillas[casillas_a_abrir[0]].aberta = 1
+								debuxar_casilla(casillas_a_abrir[0])
+								del casillas_a_abrir[0]
+							actualizacion_completa = 1
 						actualizar = MAX_ACTUALIZAR
-						debuxar_casilla(num_casilla)
 						
 				if evento.button == 3:
 					if not lista_casillas[num_casilla].marcada:

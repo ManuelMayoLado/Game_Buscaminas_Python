@@ -37,7 +37,7 @@ LADO_CADRO = 25
 NUM_CADRADOS_FILA = 20
 NUM_FILAS = 20
 
-NUM_MINAS = 30
+NUM_MINAS = 40
 
 ANCHO_VENTANA = NUM_CADRADOS_FILA * LADO_CADRO + MARCO * 2
 ALTO_VENTANA = NUM_FILAS * LADO_CADRO + MARCO * 2
@@ -86,6 +86,10 @@ ON = True
 
 inicio = True
 
+GAME_OVER = False
+
+primeira_casilla_aberta = False
+
 #FUNCIONS
 
 def num(pos):
@@ -126,6 +130,13 @@ def debuxar_casilla(n):
 							casilla.pos[0]*LADO_CADRO+text_numero.get_width()/2.,
 							casilla.pos[1]*LADO_CADRO+text_numero.get_height()/5.1
 							])
+							
+def debuxar_cadricula_surface():
+	for i in range(NUM_CADRADOS_FILA+1):
+		pygame.draw.line(Surface_casillas, COLOR_CADRICULA, [i*LADO_CADRO, 0], [i*LADO_CADRO,ALTO_VENTANA], GROSOR_LINHA)
+		
+	for i in range(NUM_FILAS+1):
+		pygame.draw.line(Surface_casillas, COLOR_CADRICULA, [0, i*LADO_CADRO], [ANCHO_VENTANA,i*LADO_CADRO], GROSOR_LINHA)
 							
 def casillas_colindantes(num,solo_cerradas=False):
 
@@ -179,11 +190,7 @@ def num_minas_colindates(n):
 	
 Surface_casillas.fill(COLOR_CADRO)		
 
-for i in range(NUM_CADRADOS_FILA+1):
-	pygame.draw.line(Surface_casillas, COLOR_FONDO, [i*LADO_CADRO, 0], [i*LADO_CADRO,ALTO_VENTANA], GROSOR_LINHA)
-		
-for i in range(NUM_FILAS+1):
-	pygame.draw.line(Surface_casillas, COLOR_FONDO, [0, i*LADO_CADRO], [ANCHO_VENTANA,i*LADO_CADRO], GROSOR_LINHA)
+debuxar_cadricula_surface()
 
 #GENERAR LISTA_CASILLAS
 
@@ -192,19 +199,14 @@ for i in range(NUM_CASILLAS):
 	lista_casillas.append(casilla(i,pos(i),0,0,0,0,0,0))
 
 cont_num_minas = NUM_MINAS
-	
-while cont_num_minas:
-	num_casilla = random.randint(0, NUM_CASILLAS-1)
-	if not lista_casillas[num_casilla].mina:
-		lista_casillas[num_casilla].mina = True
-		cont_num_minas -= 1
-		
-for i in range(len(lista_casillas)):
-	lista_casillas[i].numero_minas = num_minas_colindates(i)
 
 ###################################################################
 ####BUCLE XOGO
 ###################################################################
+
+if NUM_MINAS >= NUM_CASILLAS:
+	ON = False
+	print "Demasiadas minas"
 
 while ON:
 	
@@ -317,7 +319,7 @@ while ON:
 				
 			
 		pygame.display.update(rectangulos_sucios)
-		
+	
 	actualizar = max(actualizar-1,0)
 	
 	if actualizacion_completa:
@@ -332,7 +334,9 @@ while ON:
 	
 	#POS CASILLA MOUSE
 	
-	if pos_mouse[0] > MARCO and pos_mouse[1] > MARCO and pos_mouse[0] < ANCHO_VENTANA-MARCO and pos_mouse[1] < ALTO_VENTANA-MARCO and not fora_pantalla:
+	if (pos_mouse[0] > MARCO and pos_mouse[1] > MARCO and pos_mouse[0] < ANCHO_VENTANA-MARCO and pos_mouse[1] < ALTO_VENTANA-MARCO 
+			and not fora_pantalla 
+			and not GAME_OVER):
 		pos_casilla_mouse = [(pos_mouse[0]-MARCO)/LADO_CADRO,(pos_mouse[1]-MARCO)/LADO_CADRO]
 	else:
 		pos_casilla_mouse = False
@@ -368,25 +372,64 @@ while ON:
 		
 		if evento.type == pygame.KEYDOWN:
 			if evento.key == pygame.K_SPACE:
-				for i in lista_casillas:
-					i.aberta = 1
-					debuxar_casilla(i.num)
+				COLOR_FONDO = [210,210,210]
 				actualizar = 1
+				pos_casilla_mouse = False
+				lista_casillas = []
 				actualizacion_completa = True
+				fora_pantalla = False
+				inicio = True
+				GAME_OVER = False
+				primeira_casilla_aberta = False
+				for i in range(NUM_CASILLAS):
+					lista_casillas.append(casilla(i,pos(i),0,0,0,0,0,0))
+				cont_num_minas = NUM_MINAS
+				Surface_casillas.fill(COLOR_CADRO)		
+				debuxar_cadricula_surface()
 			
-		if evento.type == pygame.MOUSEBUTTONUP:
+		if evento.type == pygame.MOUSEBUTTONUP and not GAME_OVER:
 			if pos_mouse[0] > MARCO and pos_mouse[1] > MARCO and pos_mouse[0] < ANCHO_VENTANA-MARCO and pos_mouse[1] < ALTO_VENTANA-MARCO:
 				
 				if evento.button == 1:
 					if not lista_casillas[num_casilla].marcada and not lista_casillas[num_casilla].aberta:
-						if lista_casillas[num_casilla].numero_minas:
-							lista_casillas[num_casilla].aberta = 1
-							debuxar_casilla(num_casilla)
-						elif lista_casillas[num_casilla].mina:
+						
+						if not primeira_casilla_aberta:
+						
+							primeira_casilla_aberta = False
+							
+							while cont_num_minas:
+								num_c = random.randint(0, NUM_CASILLAS-1)
+								if not lista_casillas[num_c].mina and num_c != num_casilla:
+									lista_casillas[num_c].mina = True
+									cont_num_minas -= 1
+		
+							for i in range(len(lista_casillas)):
+								lista_casillas[i].numero_minas = num_minas_colindates(i)
+								
+							casillas_sen_minas = []
+							for i in lista_casillas:
+								if not i.mina:
+									casillas_sen_minas.append(i.num)
+						
+						if lista_casillas[num_casilla].mina:
 							lista_casillas[num_casilla].aberta = 1
 							debuxar_casilla(num_casilla)
 							GAME_OVER = True
-						else: ####################################
+							for i in lista_casillas:
+								if i.mina:
+									i.aberta = 1
+									i.marcada = 0
+									debuxar_casilla(i.num)
+							actualizacion_completa = 1
+							COLOR_FONDO = [255,210,210]
+							for i in lista_casillas:
+								debuxar_casilla(i.num)
+							
+						elif lista_casillas[num_casilla].numero_minas:
+							lista_casillas[num_casilla].aberta = 1
+							debuxar_casilla(num_casilla)	
+							
+						else:
 							casillas_a_abrir = casillas_colindantes(num_casilla,solo_cerradas=True) + [num_casilla]
 							while casillas_a_abrir:
 								casillas_a_abrir = list(set(casillas_a_abrir))
@@ -397,6 +440,19 @@ while ON:
 								del casillas_a_abrir[0]
 							actualizacion_completa = 1
 						actualizar = MAX_ACTUALIZAR
+						
+						completo = True
+						for i in casillas_sen_minas:
+							if not lista_casillas[i].aberta:
+								completo = False
+						if completo:
+							COLOR_FONDO = [210,240,210]
+							GAME_OVER = True
+							actualizacion_completa = 1
+							for i in lista_casillas:
+								debuxar_casilla(i.num)
+								
+						debuxar_cadricula_surface()
 						
 				if evento.button == 3:
 					if not lista_casillas[num_casilla].marcada:
@@ -414,7 +470,6 @@ while ON:
 		
 	if inicio:
 		inicio = False
-			
 			
 	if not ON:
 		break

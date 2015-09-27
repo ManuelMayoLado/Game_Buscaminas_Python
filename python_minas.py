@@ -430,14 +430,13 @@ while ON:
 							debuxar_casilla(num_casilla)	
 							
 						else:
-							casillas_a_abrir = casillas_colindantes(num_casilla,solo_cerradas=True) + [num_casilla]
+							casillas_a_abrir = set([num_casilla])
 							while casillas_a_abrir:
-								casillas_a_abrir = list(set(casillas_a_abrir))
-								if casillas_a_abrir and not lista_casillas[casillas_a_abrir[0]].numero_minas:
-									casillas_a_abrir = casillas_a_abrir + casillas_colindantes(casillas_a_abrir[0],solo_cerradas=True)
-								lista_casillas[casillas_a_abrir[0]].aberta = 1
-								debuxar_casilla(casillas_a_abrir[0])
-								del casillas_a_abrir[0]
+								num_casilla = casillas_a_abrir.pop()
+								lista_casillas[num_casilla].aberta = 1
+								debuxar_casilla(num_casilla)
+								if not lista_casillas[num_casilla].numero_minas:
+									casillas_a_abrir |= set(casillas_colindantes(num_casilla,solo_cerradas=True))
 							actualizacion_completa = 1
 						actualizar = MAX_ACTUALIZAR
 						

@@ -34,10 +34,10 @@ GROSOR_LINHA = 3
 
 LADO_CADRO = 25
 
-NUM_CADRADOS_FILA = 20
-NUM_FILAS = 20
+NUM_CADRADOS_FILA = 15
+NUM_FILAS = 15
 
-NUM_MINAS = 40
+NUM_MINAS = 25
 
 ANCHO_VENTANA = NUM_CADRADOS_FILA * LADO_CADRO + MARCO * 2
 ALTO_VENTANA = NUM_FILAS * LADO_CADRO + MARCO * 2
@@ -137,42 +137,19 @@ def debuxar_cadricula_surface():
 		
 	for i in range(NUM_FILAS+1):
 		pygame.draw.line(Surface_casillas, COLOR_CADRICULA, [0, i*LADO_CADRO], [ANCHO_VENTANA,i*LADO_CADRO], GROSOR_LINHA)
-							
-def casillas_colindantes(num,solo_cerradas=False):
 
-	lista_pos_mirar = [num-(NUM_CADRADOS_FILA+1),num-NUM_CADRADOS_FILA,num-(NUM_CADRADOS_FILA-1),num-1,num+1,
-						num+(NUM_CADRADOS_FILA-1),num+NUM_CADRADOS_FILA,num+(NUM_CADRADOS_FILA+1)]
-						
-	lista_num_eliminar =[]
-	
-	if pos(num)[0] == 0:
-		lista_num_eliminar.append(num-(NUM_CADRADOS_FILA+1))
-		lista_num_eliminar.append(num-1)
-		lista_num_eliminar.append(num+(NUM_CADRADOS_FILA-1))
-	if pos(num)[0] == NUM_CADRADOS_FILA-1:
-		lista_num_eliminar.append(num-(NUM_CADRADOS_FILA-1))
-		lista_num_eliminar.append(num+1)
-		lista_num_eliminar.append(num+(NUM_CADRADOS_FILA+1))
-	if pos(num)[1] == 0:
-		lista_num_eliminar.append(num-(NUM_CADRADOS_FILA+1))
-		lista_num_eliminar.append(num-NUM_CADRADOS_FILA)
-		lista_num_eliminar.append(num-(NUM_CADRADOS_FILA-1))
-	if pos(num)[1] == NUM_FILAS-1:
-		lista_num_eliminar.append(num+(NUM_CADRADOS_FILA+1))
-		lista_num_eliminar.append(num+NUM_CADRADOS_FILA)
-		lista_num_eliminar.append(num+(NUM_CADRADOS_FILA-1))
-	lista_num_eliminar = list(set(lista_num_eliminar))
-	
-	for i in lista_num_eliminar:
-		lista_pos_mirar.remove(i)
-		
-	if solo_cerradas:
-		lista_pos_mirar_cop = lista_pos_mirar[:]
-		for i in lista_pos_mirar_cop:
-			if lista_casillas[i].aberta:
-				lista_pos_mirar.remove(i)
-	
-	return lista_pos_mirar
+vecinhas = [(-1, -1), (0, -1), (1, -1),
+			(-1,  0),          (1,  0),
+			(-1,  1), (0,  1), (1,  1)]
+			
+def casillas_colindantes(num):
+	x, y = pos(num)
+	indices = set(x + dx + (y + dy) * NUM_CADRADOS_FILA
+		for dx, dy in vecinhas 
+		if 0 <= x + dx < NUM_CADRADOS_FILA 
+		and 0 <= y + dy < NUM_FILAS)
+	indices = set(i for i in indices if not lista_casillas[i].aberta)
+	return indices
 
 def num_minas_colindates(n):
 	
@@ -436,7 +413,7 @@ while ON:
 								lista_casillas[num_casilla].aberta = 1
 								debuxar_casilla(num_casilla)
 								if not lista_casillas[num_casilla].numero_minas:
-									casillas_a_abrir |= set(casillas_colindantes(num_casilla,solo_cerradas=True))
+									casillas_a_abrir |= casillas_colindantes(num_casilla)
 							actualizacion_completa = 1
 						actualizar = MAX_ACTUALIZAR
 						
